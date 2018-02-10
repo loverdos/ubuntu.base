@@ -1,0 +1,1 @@
+PATH=~/.linuxbrew/bin:$PATH
