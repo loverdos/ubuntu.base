@@ -1,57 +1,66 @@
-FROM loverdos/ubuntu.updated:latest
+FROM ubuntu:bionic
 LABEL maintainer Christos KK Loverdos <loverdos@gmail.com>
+
+# An initial, updated image, ready to be used for 
+# experimentation and installing software.
+
+ARG PLAIN_USER
+ENV PLAIN_USER ${PLAIN_USER:-plainuser}
+ENV PLAIN_USER_HOME /home/$PLAIN_USER
 
 ENV DEBIAN_FRONTEND noninteractive
 
-# base system
-RUN apt-get install -y apt-utils apt-transport-\* software-properties-common python-software-properties python3-software-properties
-RUN apt-get install -y locales
-RUN apt-get install -y sudo
-RUN apt-get install -y curl wget
-RUN apt-get install -y vim
-RUN apt-get install -y git
-RUN apt-get install -y openssl
-RUN apt-get install -y autoconf libtool m4
-RUN apt-get install -y p7zip-full atool xz-utils
+# Absolutely minimum setup for further installations
+RUN apt-get update \
+    && apt-get -y upgrade \
+    && apt-get install -y locales sudo apt-utils apt-transport-https software-properties-common \
+    && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
 
-RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
+# Add ppa: fish
+# Install: fish
+RUN apt-add-repository -y ppa:fish-shell/release-2 \
+    && apt-get update \
+    && apt-get -y install fish
 
-# Add user: christos
-RUN adduser --disabled-password --gecos '' christos \
-    && adduser christos sudo \
+# Add user: plainuser
+RUN adduser --disabled-password --gecos '' $PLAIN_USER \
+    && adduser $PLAIN_USER sudo \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Add fish shell ppa
-RUN apt-add-repository -y ppa:fish-shell/release-2
-
-RUN apt-get update
-
-# install: fish
-RUN apt-get -y install fish
-
 # set login shell (root): fish
-RUN chsh -s /usr/bin/fish
-RUN mkdir -p ~root/.config/fish
-
-# set login shell (christos): fish
-RUN chsh -s /usr/bin/fish christos
-RUN mkdir -p ~christos/.config/fish; chown -R christos:christos ~christos/.config/
+RUN chsh -s /usr/bin/fish \
+    && mkdir -p ~root/.config/fish
 
 # add some usefull scripts
 ADD install-config.sh /root/
-ADD install-config.sh /home/christos/
-RUN chown christos:christos /home/christos/install-config.sh
 
-# install configurations
-ADD base-append-config.fish /home/christos/
-ADD base-append-profile.sh  /home/christos/
-RUN chown christos:christos /home/christos/base-*.*
-RUN su - christos -c '~/install-config.sh base'
+# set login shell (plainuser): fish
+ARG PLAIN_USER_SHELL
+ENV PLAIN_USER_SHELL ${PLAIN_USER_SHELL:-/usr/bin/fish}
+RUN chsh -s $PLAIN_USER_SHELL $PLAIN_USER
 
-# Install linuxbrew
-RUN apt-get install -y ruby
-ADD base-install-linuxbrew.sh /home/christos/base-install-linuxbrew.sh
-RUN chown christos:christos /home/christos/base-install-linuxbrew.sh
-RUN su - christos -c '~/base-install-linuxbrew.sh'
+# everything from now on is from $PLAIN_USER
+USER $PLAIN_USER
+WORKDIR $PLAIN_USER_HOME
+ENV USER $PLAIN_USER
+ENV HOME $PLAIN_USER_HOME
+ENV SHELL $PLAIN_USER_SHELL
 
-CMD ["/usr/bin/fish", "-C", "cd ~; set -gx SHELL /usr/bin/fish"]
+# Update PATH
+ENV PATH $PLAIN_USER_HOME:$PATH
+
+# add configurations
+ADD chown.sh $PLAIN_USER_HOME
+ADD cmd.sh $PLAIN_USER_HOME
+ADD install-config.sh $PLAIN_USER_HOME
+ADD base-append-config.fish $PLAIN_USER_HOME
+
+# prepare to run extra configuration steps
+RUN chown.sh *.sh *.fish
+
+# run extra configuration steps
+RUN mkdir -p bin .local/bin .config/fish
+RUN install-config.sh base
+
+# We cannot use $PLAIN_USER_SHELL here
+CMD [ "/usr/bin/fish", "-i", "-l" ]
