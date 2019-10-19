@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:disco
 LABEL maintainer Christos KK Loverdos <loverdos@gmail.com>
 
 # An initial, updated image, ready to be used for 
@@ -9,27 +9,10 @@ ENV PLAIN_USER ${PLAIN_USER:-plainuser}
 ENV PLAIN_USER_HOME /home/$PLAIN_USER
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV TERM xterm-256color
 
-# Absolutely minimum setup for further installations
-RUN apt-get update \
-    && apt-get -y upgrade \
-    && apt-get install -y locales sudo apt-utils apt-transport-https software-properties-common \
-    && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
-
-# Add ppa: fish
-# Install: fish
-RUN apt-add-repository -y ppa:fish-shell/release-2 \
-    && apt-get update \
-    && apt-get -y install fish
-
-# Add user: plainuser
-RUN adduser --disabled-password --gecos '' $PLAIN_USER \
-    && adduser $PLAIN_USER sudo \
-    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-# set login shell (root): fish
-RUN chsh -s /usr/bin/fish \
-    && mkdir -p ~root/.config/fish
+ADD base-install-base.sh /root/
+RUN /root/base-install-base.sh
 
 # add some usefull scripts
 ADD install-config.sh /root/
@@ -52,6 +35,7 @@ ENV PATH $PLAIN_USER_HOME:$PATH
 # add configurations
 ADD chown.sh $PLAIN_USER_HOME
 ADD cmd.sh $PLAIN_USER_HOME
+ADD install.sh $PLAIN_USER_HOME
 ADD install-config.sh $PLAIN_USER_HOME
 ADD base-append-config.fish $PLAIN_USER_HOME
 
@@ -61,6 +45,17 @@ RUN chown.sh *.sh *.fish
 # run extra configuration steps
 RUN mkdir -p bin .local/bin .config/fish
 RUN install-config.sh base
+
+# install: fisherman
+ADD base-install-fisherman.sh $PLAIN_USER_HOME
+RUN chown.sh base-install-fisherman.sh
+RUN base-install-fisherman.sh
+
+# add: .gitconfig
+ADD .gitconfig $PLAIN_USER_HOME
+RUN chown.sh .gitconfig
+
+RUN install.sh atool p7zip-full zip unzip fzy silversearcher-ag rlwrap
 
 # We cannot use $PLAIN_USER_SHELL here
 CMD [ "/usr/bin/fish", "-i", "-l" ]

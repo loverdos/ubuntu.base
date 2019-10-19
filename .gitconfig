@@ -1,0 +1,57 @@
+[user]
+  name = Christos KK Loverdos
+  email = loverdos@gmail.com
+  useConfigOnly= true
+[alias]
+  st = status --short
+  ci = commit
+  co = checkout
+  graph = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+	graph2 = log --pretty=oneline --abbrev-commit --graph --decorate --all
+  graph3 = log --graph --all --format=format:'%C(bold blue)%h%C(reset) %C(bold green)(%ar)%C(reset)%C(bold red)%d%C(reset) [%an] %C(blue)%s%C(reset)' --abbrev-commit --date=relative
+  current-branch = "!git rev-parse --abbrev-ref HEAD"
+  get-commit-count = "!git rev-list HEAD --count"
+  get-tag = "!git describe --tags --abbrev=0"
+  get-branch = "!git rev-parse --abbrev-ref HEAD"
+  get-short-sha = "!git rev-parse --short HEAD"
+  get-build-number = "!echo `git get-branch`.`git get-commit-count`.`git get-short-sha`"
+  untracked = !git ls-files --others --exclude-standard
+  overview = !git log --pretty=oneline --abbrev-commit --stat --graph
+  outgoing = !git log --pretty=oneline --abbrev-commit --graph @{u}..
+  incoming = !git fetch && git log --pretty=oneline --abbrev-commit --graph ..@{u}
+[branch]
+  autosetuprebase = always
+[color]
+  diff = auto
+  ui = 1
+[core]
+  eol = native
+  autocrlf = false
+  whitespace = trailing-space,space-before-tab,cr-at-eol
+  safecrlf = true
+[rerere]
+  enabled = 1
+  autoUpdate = true
+[github]
+  user = loverdos
+[remote-hg]
+  hg-git-compat = true
+[filter "media"]
+  clean = git-media-clean %f
+  smudge = git-media-smudge %f
+[transfer]
+  fsckobjects = true
+[fetch]
+  fsckobjects = true
+[receive]
+  fsckObjects = true
+  denyDeleteCurrent = true
+[receive "fsck"]
+  badDate = warn
+  missingEmail = warn
+[fsck]
+  badDate = warn
+  missingEmail = warn
+[diff]
+	compactionHeuristic = true
+  renames = copy
