@@ -1,4 +1,4 @@
-FROM ubuntu:disco
+FROM ubuntu:focal
 LABEL maintainer Christos KK Loverdos <loverdos@gmail.com>
 
 # An initial, updated image, ready to be used for 
